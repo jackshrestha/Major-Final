@@ -19,6 +19,7 @@ from imutils import paths
 import argparse
 import random
 import datetime
+from datetime import timedelta
 
 
 from keras.models import load_model
@@ -163,12 +164,14 @@ def Registration():
 def recognition():
 
     Entry=False
+    stop_recording=False
+    Entry_time_Recorded=False
+    one_time_buffer_run=False
     
     while True:
         date_time=datetime.datetime.now()
-        Entry_time_Recorded=False
-        detect=False
-        stop=False
+        
+        detect_face=False
         ret, img = cap.read() 
         font = cv2.FONT_HERSHEY_PLAIN
         image = cv2.resize(img, (96, 96))
@@ -186,7 +189,7 @@ def recognition():
         dets = detector(img, 1)
 
         for i, d in enumerate(dets):  
-            detect=True
+            detect_face=True
             cv2.rectangle(img, (d.left(), d.top())  ,(d.right(), d.bottom()),(0,255,0) ,2)    
             label = "{}: {:.2f}%".format(id_code, proba[idx] * 100)
             output = imutils.resize(output, width=400)
@@ -199,14 +202,26 @@ def recognition():
                 print("Entry:"+time)
                 Entry=True 
                 Entry_time_Recorded=True
-        if(detect==False and stop==False and Entry_time_Recorded==True):
+
+       
+        if(detect_face==False and stop_recording==False and Entry_time_Recorded==True):
+          
             time=date_time.strftime("%H:%M:%S")
             date=str(date_time.date())
-            firebase_database.put("Attendence/Students/"+id_code+"/"+date+"/","Exit Time",time)
-            print("Exit:"+time)
-            stop=True
+            current_time= str(datetime.datetime.now())
+            if(one_time_buffer_run==False):
+                buffer_time =  str(datetime.datetime.now() + timedelta(seconds=30))
+                print(buffer_time)
+                one_time_buffer_run=True
+
+            #print(current_time + "=" + buffer_time)
+          
+            #if(current_time==buffer_time):  
+                firebase_database.put("Attendence/Students/"+id_code+"/"+date+"/","Exit Time",time)
+                print("Exit:"+time)
+                stop_recording=True
         cv2.imshow('frame', img)                                                   
-        cv2.waitKey(1)
+       # cv2.waitKey(1)
         key=cv2.waitKey(1)
         if key==ord('q'):
             break
